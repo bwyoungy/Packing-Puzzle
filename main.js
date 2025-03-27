@@ -1,16 +1,16 @@
 // Piece definitions with colors and square counts
 const PIECES = [
-    { squares: 1, color: '#993399', name: '1-Square' },    
-    { squares: 2, color: '#ff6666', name: '2-Square Line' },    
-    { squares: 3, color: '#ffff4d', name: '3-Square Line' },    
-    { squares: 3, color: '#ff9900', name: '3-Square Corner' },    
-    { squares: 4, color: '#66ff33', name: '4-Square Line' },    
-    { squares: 4, color: '#0066ff', name: '4-Square Square' },    
-    { squares: 4, color: '#cc00ff', name: '4-Square J' },    
-    { squares: 4, color: '#9900ff', name: '4-Square L' },    
-    { squares: 4, color: '#006600', name: '4-Square T' },    
-    { squares: 4, color: '#00ffcc', name: '4-Square Z' },    
-    { squares: 4, color: '#000099', name: '4-Square S' }     
+    { squares: 1, color: '#993399', name: '1-Square' },
+    { squares: 2, color: '#ff6666', name: '2-Square Line' },
+    { squares: 3, color: '#ffff4d', name: '3-Square Line' },
+    { squares: 3, color: '#ff9900', name: '3-Square Corner' },
+    { squares: 4, color: '#66ff33', name: '4-Square Line' },
+    { squares: 4, color: '#0066ff', name: '4-Square Square' },
+    { squares: 4, color: '#cc00ff', name: '4-Square J' },
+    { squares: 4, color: '#9900ff', name: '4-Square L' },
+    { squares: 4, color: '#006600', name: '4-Square T' },
+    { squares: 4, color: '#00ffcc', name: '4-Square Z' },
+    { squares: 4, color: '#000099', name: '4-Square S' }
 ];
 
 // Define pieces in 3D array - 1st dimension piece number (1-11), 2nd dimension set of coordinates starting at (0,0), 3rd dimension possible rotations
@@ -28,13 +28,29 @@ const PIECES_LIST = [
     [[0, 0], [0, 1], [1, 1], [1, 2]] // 11: 4 square S shape
 ];
 
-// Create piece selectors
+let boardSize = 4; // Default board size
+
+function updateBoardSize(newSize) {
+    boardSize = parseInt(newSize);
+    initializePuzzle(); // Re-initialize the puzzle with the new size
+}
+
+// Create piece selectors and board
 function initializePuzzle() {
     const piecesSelection = document.getElementById('piecesSelection');
     const board = document.getElementById('board');
 
+    // Clear existing content
+    board.innerHTML = '';
+    piecesSelection.innerHTML = '';
+
+    // Set board grid layout
+    board.style.gridTemplateColumns = `repeat(${boardSize}, 1fr)`;
+    board.style.width = `${boardSize * 50}px`; // Adjust board width
+    board.style.height = `${boardSize * 50}px`; // Adjust board height
+
     // Create board cells
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < boardSize * boardSize; i++) {
         const cell = document.createElement('div');
         cell.classList.add('board-cell');
         board.appendChild(cell);
@@ -60,10 +76,10 @@ function initializePuzzle() {
         const input = document.createElement('input');
         input.type = 'number';
         input.min = 0;
-        input.max = Math.floor(16 / piece.squares);
+        input.max = Math.floor((boardSize * boardSize) / piece.squares);
         input.value = 0;
         input.id = `piece-${index + 1}`;
-        input.setAttribute('title', `Max: ${Math.floor(16 / piece.squares)}`);
+        input.setAttribute('title', `Max: ${Math.floor((boardSize * boardSize) / piece.squares)}`);
 
         pieceSelector.appendChild(canvas);
         pieceSelector.appendChild(label);
@@ -85,15 +101,15 @@ function drawPiece(canvas, pieceCoords, color) {
 
     pieceCoords.forEach(coord => {
         ctx.fillRect(
-            offsetX + coord[0] * scale, 
-            offsetY + coord[1] * scale, 
-            scale - 1, 
+            offsetX + coord[0] * scale,
+            offsetY + coord[1] * scale,
+            scale - 1,
             scale - 1
         );
         ctx.strokeRect(
-            offsetX + coord[0] * scale, 
-            offsetY + coord[1] * scale, 
-            scale - 1, 
+            offsetX + coord[0] * scale,
+            offsetY + coord[1] * scale,
+            scale - 1,
             scale - 1
         );
     });
@@ -102,14 +118,14 @@ function drawPiece(canvas, pieceCoords, color) {
 // Solve puzzle function
 function solvePuzzle() {
     const resultDiv = document.getElementById('result');
-    const board = document.getElementById('board');
+    const boardElement = document.getElementById('board');
     const pieces = [];
 
     // Collect piece counts
     for (let i = 1; i <= 11; i++) {
         const input = document.getElementById(`piece-${i}`);
         const count = parseInt(input.value);
-        
+
         // Add piece to array multiple times based on count
         for (let j = 0; j < count; j++) {
             pieces.push(i);
@@ -117,11 +133,11 @@ function solvePuzzle() {
     }
 
     try {
-        // Call original packingPuzzle function
-        const solution = packingPuzzle(pieces);
+        // Call original packingPuzzle function with the current board size
+        const solution = packingPuzzle(pieces, boardSize);
 
         // Clear previous solution
-        board.childNodes.forEach(cell => {
+        boardElement.childNodes.forEach(cell => {
             cell.style.backgroundColor = 'white';
         });
 
@@ -135,9 +151,9 @@ function solvePuzzle() {
         // Display solution
         solution.forEach((row, rowIndex) => {
             row.forEach((pieceType, colIndex) => {
-                const cellIndex = rowIndex * 4 + colIndex;
-                const cell = board.childNodes[cellIndex];
-                
+                const cellIndex = rowIndex * boardSize + colIndex;
+                const cell = boardElement.childNodes[cellIndex];
+
                 if (pieceType > 0) {
                     cell.style.backgroundColor = PIECES[pieceType - 1].color;
                 }
@@ -153,25 +169,25 @@ function solvePuzzle() {
     }
 }
 
-function packingPuzzle(pieces) {
+function packingPuzzle(pieces, size) {
     // Check if input is null or empty
     if (!pieces || pieces.length === 0) throw new Error("no pieces!");
 
-    // Initialise board
-    let board = Array(4).fill().map(() => Array(4).fill(0));
+    // Initialise board with the given size
+    let board = Array(size).fill().map(() => Array(size).fill(0));
 
     // Initialise count array to count how many of each piece (index 0 will be unused for ease of use and no need for +/-1 everywhere)
     let count = Array(12).fill(0);
     for (let piece of pieces) count[piece]++;
 
     // Check if puzzle is solvable
-    if (solve(board, count)) return board;
+    if (solve(board, count, size)) return board;
 
-    return Array(4).fill().map(() => Array(4).fill(0));
+    return Array(size).fill().map(() => Array(size).fill(0));
 }
 
 // Function to solve the board
-function solve(board, count) {
+function solve(board, count, size) {
     // Check if all pieces used and board full
     if (isBoardFull(board) && areAllPiecesUsed(count)) return true;
 
@@ -185,15 +201,15 @@ function solve(board, count) {
             let rotatedPiece = rotatePiece(PIECES_LIST[pieceType - 1], rotation);
 
             // Iterate over board
-            for (let row = 0; row < 4; row++) {
-                for (let col = 0; col < 4; col++) {
+            for (let row = 0; row < size; row++) {
+                for (let col = 0; col < size; col++) {
                     // Try placing piece at row,col
-                    if (isPlaceable(board, rotatedPiece, row, col)) {
+                    if (isPlaceable(board, rotatedPiece, row, col, size)) {
                         placePiece(board, rotatedPiece, row, col, pieceType);
                         count[pieceType]--;
 
                         // Recursively solve
-                        if (solve(board, count)) return true;
+                        if (solve(board, count, size)) return true;
 
                         // Backtracking
                         removePiece(board, rotatedPiece, row, col);
@@ -222,20 +238,21 @@ function areAllPiecesUsed(count) {
 }
 
 // Function to check if we can place piece on board
-function isPlaceable(board, piece, row, col) {
+function isPlaceable(board, piece, row, col, size) {
     // Iterate over coordinations of piece
     for (let coord of piece) {
         // Get row and col relative to placing point
         let relRow = row + coord[0];
         let relCol = col + coord[1];
         // Check pos doesn't go out of board and that the pos on board is empty
-        if (relRow < 0 || relRow >= 4 || relCol < 0 || relCol >= 4 || board[relRow][relCol] !== 0) return false;
+        if (relRow < 0 || relRow >= size || relCol < 0 || relCol >= size || board[relRow][relCol] !== 0) return false;
     }
     return true;
 }
 
 // Function to update board with placing a piece
 function placePiece(board, piece, row, col, pieceID) {
+    const size = board.length;
     // Iterate over coordinations of piece
     for (let coord of piece) {
         // Get row and col relative to placing point
